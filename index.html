@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0B2545">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MK Scanner">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Meshez Kadi Scanner</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue-dark:  #0B2545;
+  --blue-mid:   #1B4F8A;
+  --blue-light: #2E7DD1;
+  --orange:     #F47920;
+  --orange-lt:  #FFA647;
+  --white:      #FFFFFF;
+  --gray-50:    #F8FAFC;
+  --gray-100:   #F1F5F9;
+  --gray-200:   #E2E8F0;
+  --gray-400:   #94A3B8;
+  --gray-600:   #475569;
+  --gray-800:   #1E293B;
+  --success:    #10B981;
+  --danger:     #EF4444;
+  --warning:    #F59E0B;
+  --safe-top:   env(safe-area-inset-top);
+  --safe-bot:   env(safe-area-inset-bottom);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--blue-dark);
+  color: var(--white);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== SPLASH ===== */
+#splash {
+  position: fixed; inset: 0;
+  background: linear-gradient(160deg, var(--blue-dark) 0%, var(--blue-mid) 60%, var(--blue-light) 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s;
+}
+
+.splash-logo {
+  width: 100px; height: 100px;
+  background: linear-gradient(135deg, var(--blue-light), var(--orange));
+  border-radius: 24px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 52px;
+  box-shadow: 0 20px 60px rgba(244,121,32,0.4);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.splash-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px; font-weight: 700;
+  margin-top: 24px; color: white;
+  letter-spacing: -0.5px;
+}
+
+.splash-sub {
+  font-size: 14px; color: rgba(255,255,255,0.5);
+  margin-top: 8px; letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.splash-loader {
+  margin-top: 48px;
+  width: 48px; height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px; overflow: hidden;
+}
+
+.splash-loader-fill {
+  height: 100%;
+  background: var(--orange);
+  border-radius: 2px;
+  animation: load 2s ease forwards;
+}
+
+@keyframes load { from { width: 0; } to { width: 100%; } }
+
+/* ===== AUTH ===== */
+#auth-screen {
+  min-height: 100vh;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, var(--blue-dark) 0%, var(--blue-mid) 100%);
+}
+
+.auth-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
+  padding: 36px 28px;
+  width: 100%; max-width: 380px;
+  backdrop-filter: blur(20px);
+}
+
+.auth-logo-sm {
+  text-align: center; margin-bottom: 28px;
+}
+
+.auth-logo-sm .icon {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, var(--blue-light), var(--orange));
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; margin: 0 auto 12px;
+}
+
+.auth-logo-sm h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; color: white;
+}
+
+.auth-logo-sm p { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+.input-group { margin-bottom: 16px; }
+
+.input-group label {
+  display: block; font-size: 12px;
+  font-weight: 600; color: rgba(255,255,255,0.5);
+  margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+.input-group input {
+  width: 100%; padding: 14px 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 12px; font-size: 15px;
+  color: white; outline: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+  border-color: var(--orange);
+  background: rgba(255,255,255,0.12);
+}
+
+.input-group input::placeholder { color: rgba(255,255,255,0.25); }
+
+.btn-login {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-lt));
+  color: white; border: none; border-radius: 14px;
+  font-size: 16px; font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer; margin-top: 8px;
+  box-shadow: 0 8px 24px rgba(244,121,32,0.35);
+  transition: all 0.2s;
+}
+
+.btn-login:active { transform: scale(0.98); }
+
+.auth-error {
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #FCA5A5; border-radius: 10px;
+  padding: 12px 16px; font-size: 13px;
+  margin-top: 14px; display: none; text-align: center;
+}
+
+/* ===== MAIN APP ===== */
+#app { display: none; min-height: 100vh; background: var(--gray-50); }
+
+/* Top Bar */
+.topbar {
+  background: var(--blue-dark);
+  padding: 16px 20px;
+  padding-top: calc(16px + var(--safe-top));
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+}
+
+.topbar-logo {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.topbar-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--blue-light), var(--orange));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+
+.topbar-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px; font-weight: 700; color: white;
+}
+
+.topbar-sub { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+.topbar-actions { display: flex; gap: 8px; }
+
+.topbar-btn {
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,0.08);
+  border: none; border-radius: 10px;
+  color: white; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--blue-dark);
+  padding: 12px 0;
+  padding-bottom: calc(12px + var(--safe-bot));
+  display: flex; justify-content: space-around;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  z-index: 100;
+}
+
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  border: none; background: transparent;
+  color: rgba(255,255,255,0.4);
+  font-size: 11px; font-weight: 600;
+  cursor: pointer; padding: 4px 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: color 0.2s;
+}
+
+.nav-btn .nav-icon { font-size: 22px; }
+
+.nav-btn.active { color: var(--orange); }
+
+/* Pages */
+.page {
+  display: none;
+  padding: 20px 16px;
+  padding-bottom: 100px;
+  min-height: calc(100vh - 60px);
+}
+
+.page.active { display: block; }
+
+/* Cards */
+.card {
+  background: white; border-radius: 16px;
+  padding: 18px; margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(11,37,69,0.08);
+}
+
+.card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px; font-weight: 700;
+  color: var(--blue-dark); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* Stats */
+.stats-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 14px;
+}
+
+.stat-box {
+  background: white; border-radius: 16px;
+  padding: 16px; text-align: center;
+  box-shadow: 0 2px 12px rgba(11,37,69,0.08);
+  position: relative; overflow: hidden;
+}
+
+.stat-box::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+}
+
+.stat-box.blue::before { background: var(--blue-light); }
+.stat-box.orange::before { background: var(--orange); }
+.stat-box.green::before { background: var(--success); }
+.stat-box.red::before { background: var(--danger); }
+
+.stat-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px; font-weight: 700;
+  color: var(--blue-dark);
+}
+
+.stat-lbl {
+  font-size: 11px; font-weight: 600;
+  color: var(--gray-400); text-transform: uppercase;
+  letter-spacing: 0.6px; margin-top: 4px;
+}
+
+/* Progress */
+.progress-bar {
+  height: 8px; background: var(--gray-200);
+  border-radius: 4px; overflow: hidden; margin: 10px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue-light), var(--orange));
+  border-radius: 4px; transition: width 0.6s;
+}
+
+/* Scanner */
+#qr-reader-pwa {
+  width: 100%; border-radius: 16px;
+  overflow: hidden; background: black;
+}
+
+/* Scan Result */
+.scan-result {
+  border-radius: 20px; padding: 28px 20px;
+  text-align: center; margin: 14px 0;
+  animation: popIn 0.3s ease;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.scan-result.success {
+  background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
+  border: 2px solid var(--success);
+}
+
+.scan-result.error {
+  background: linear-gradient(135deg, #FEF2F2, #FEE2E2);
+  border: 2px solid var(--danger);
+}
+
+.scan-result.warning {
+  background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
+  border: 2px solid var(--warning);
+}
+
+.result-icon { font-size: 72px; line-height: 1; }
+
+.result-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; font-weight: 700;
+  margin-top: 12px;
+}
+
+.result-name {
+  font-size: 18px; font-weight: 700;
+  color: var(--blue-dark); margin-top: 8px;
+}
+
+.result-sub { font-size: 14px; color: var(--gray-600); margin-top: 6px; }
+
+/* Confirm Button */
+.confirm-section {
+  background: white; border-radius: 16px;
+  padding: 18px; margin-top: 14px;
+  box-shadow: 0 2px 12px rgba(11,37,69,0.08);
+}
+
+.count-input {
+  width: 100%; padding: 14px;
+  border: 2px solid var(--gray-200);
+  border-radius: 12px; font-size: 18px;
+  text-align: center; font-weight: 700;
+  color: var(--blue-dark); outline: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin-bottom: 12px;
+}
+
+.count-input:focus { border-color: var(--orange); }
+
+.btn-confirm {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-lt));
+  color: white; border: none; border-radius: 14px;
+  font-size: 16px; font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer; box-shadow: 0 6px 20px rgba(244,121,32,0.35);
+}
+
+.btn-confirm:active { transform: scale(0.98); }
+
+/* Manual input */
+.manual-section {
+  background: white; border-radius: 16px;
+  padding: 18px; margin-top: 14px;
+  box-shadow: 0 2px 12px rgba(11,37,69,0.08);
+}
+
+.manual-input {
+  width: 100%; padding: 14px 16px;
+  border: 2px solid var(--gray-200);
+  border-radius: 12px; font-size: 14px;
+  color: var(--blue-dark); outline: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin-bottom: 10px; background: var(--gray-50);
+}
+
+.manual-input:focus { border-color: var(--blue-light); }
+
+.btn-verify {
+  width: 100%; padding: 14px;
+  background: var(--blue-mid); color: white;
+  border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+}
+
+/* Guests List */
+.guest-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--gray-100);
+}
+
+.guest-item:last-child { border-bottom: none; }
+
+.guest-left { flex: 1; }
+
+.guest-name { font-size: 15px; font-weight: 700; color: var(--blue-dark); }
+.guest-sub { font-size: 12px; color: var(--gray-400); margin-top: 3px; }
+
+.badge {
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+
+.badge-green { background: #F0FDF4; color: var(--success); }
+.badge-orange { background: #FFF7ED; color: var(--orange); }
+.badge-gray { background: var(--gray-100); color: var(--gray-600); }
+.badge-blue { background: #EFF6FF; color: var(--blue-light); }
+
+/* Event Selector */
+.event-select {
+  width: 100%; padding: 12px 16px;
+  background: var(--gray-50); border: 2px solid var(--gray-200);
+  border-radius: 12px; font-size: 14px;
+  color: var(--blue-dark); outline: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin-bottom: 14px;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 90px; left: 16px; right: 16px;
+  background: var(--blue-dark); color: white;
+  padding: 14px 18px; border-radius: 14px;
+  font-size: 14px; font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  z-index: 9999;
+  transform: translateY(20px); opacity: 0;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+
+/* Empty State */
+.empty {
+  text-align: center; padding: 48px 20px;
+  color: var(--gray-400);
+}
+
+.empty-icon { font-size: 52px; margin-bottom: 12px; }
+.empty-title { font-size: 16px; font-weight: 700; color: var(--gray-600); }
+.empty-sub { font-size: 13px; margin-top: 6px; }
+
+/* Profile */
+.profile-header {
+  background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid));
+  border-radius: 20px; padding: 28px 20px;
+  text-align: center; margin-bottom: 14px;
+  color: white;
+}
+
+.profile-avatar {
+  width: 80px; height: 80px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-lt));
+  border-radius: 50%; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 36px; font-weight: 800;
+  margin: 0 auto 16px;
+  border: 3px solid rgba(255,255,255,0.2);
+}
+
+.profile-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; font-weight: 700;
+}
+
+.profile-email { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+.menu-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; background: white;
+  border-radius: 14px; margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(11,37,69,0.06);
+  cursor: pointer; border: none; width: 100%;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  text-align: left;
+}
+
+.menu-left { display: flex; align-items: center; gap: 12px; }
+.menu-icon { font-size: 22px; }
+.menu-text { font-size: 15px; font-weight: 600; color: var(--blue-dark); }
+.menu-sub { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+.menu-arrow { color: var(--gray-400); font-size: 16px; }
+
+.btn-logout-pwa {
+  width: 100%; padding: 16px;
+  background: #FEF2F2; color: var(--danger);
+  border: 2px solid #FECACA; border-radius: 14px;
+  font-size: 15px; font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer; margin-top: 8px;
+}
+
+/* Install Banner */
+.install-banner {
+  background: linear-gradient(135deg, var(--orange), var(--orange-lt));
+  border-radius: 16px; padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 14px; cursor: pointer;
+}
+
+.install-banner-text h3 { font-size: 14px; font-weight: 700; color: white; }
+.install-banner-text p { font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+.install-btn { background: white; color: var(--orange); border: none; border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">🎴</div>
+  <div class="splash-title">Meshez Kadi</div>
+  <div class="splash-sub">Scanner System</div>
+  <div class="splash-loader"><div class="splash-loader-fill"></div></div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo-sm">
+      <div class="icon">🎴</div>
+      <h1>Meshez Kadi</h1>
+      <p>Scanner & Verification</p>
+    </div>
+    <div class="input-group">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="email@mfano.com" autocomplete="email">
+    </div>
+    <div class="input-group">
+      <label>Neno la Siri</label>
+      <input type="password" id="auth-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="login()">🔐 Ingia</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-icon">🎴</div>
+      <div>
+        <div class="topbar-title">Meshez Kadi</div>
+        <div class="topbar-sub" id="topbar-event">Scanner System</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" onclick="refreshAll()">🔄</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PAGE -->
+  <div class="page active" id="page-dashboard">
+
+    <!-- Install Banner -->
+    <div class="install-banner" id="install-banner" style="display:none" onclick="installApp()">
+      <div style="font-size:32px">📲</div>
+      <div class="install-banner-text">
+        <h3>Install App kwenye Simu</h3>
+        <p>Bonyeza hapa kuongeza kwenye Home Screen</p>
+      </div>
+      <button class="install-btn">Install</button>
+    </div>
+
+    <!-- Event Selector -->
+    <select class="event-select" id="dash-event" onchange="loadDashboard()">
+      <option value="">-- Chagua Tukio --</option>
+    </select>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-box blue">
+        <div class="stat-num" id="d-total">0</div>
+        <div class="stat-lbl">Walioalikwa</div>
+      </div>
+      <div class="stat-box green">
+        <div class="stat-num" id="d-arrived">0</div>
+        <div class="stat-lbl">Waliofika</div>
+      </div>
+      <div class="stat-box orange">
+        <div class="stat-num" id="d-pending">0</div>
+        <div class="stat-lbl">Hawajafika</div>
+      </div>
+      <div class="stat-box red">
+        <div class="stat-num" id="d-pct">0%</div>
+        <div class="stat-lbl">Ufike</div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="card">
+      <div class="card-title">📊 Maendeleo ya Ufike</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="d-progress" style="width:0%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gray-400);margin-top:8px">
+        <span id="d-arrived-lbl">0 wamefika</span>
+        <span id="d-total-lbl">0 walioalikwa</span>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-title">⚡ Vitendo vya Haraka</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button onclick="switchPage('scanner')" style="padding:16px;background:linear-gradient(135deg,var(--blue-mid),var(--blue-light));color:white;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">
+          📷 Scan QR
+        </button>
+        <button onclick="switchPage('guests')" style="padding:16px;background:linear-gradient(135deg,var(--orange),var(--orange-lt));color:white;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">
+          👥 Wageni
+        </button>
+      </div>
+    </div>
+
+    <!-- Recent Scans -->
+    <div class="card">
+      <div class="card-title">🕐 Walioingia Hivi Karibuni</div>
+      <div id="recent-scans">
+        <div class="empty">
+          <div class="empty-icon">📷</div>
+          <div class="empty-title">Hakuna scans bado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCANNER PAGE -->
+  <div class="page" id="page-scanner">
+
+    <!-- Event Selector -->
+    <select class="event-select" id="scan-event" onchange="updateScanEvent()">
+      <option value="">-- Chagua Tukio --</option>
+    </select>
+
+    <!-- QR Reader -->
+    <div class="card" style="padding:12px">
+      <div id="qr-reader-pwa"></div>
+    </div>
+
+    <!-- Scan Result -->
+    <div id="scan-result-pwa"></div>
+
+    <!-- Manual Input -->
+    <div class="manual-section">
+      <div class="card-title" style="margin-bottom:10px">⌨️ Andika ID Kwa Mkono</div>
+      <input type="text" class="manual-input" id="manual-id"
+        placeholder="HARUSI2026-XXXXXX"
+        oninput="this.value=this.value.toUpperCase()">
+      <button class="btn-verify" onclick="verifyManual()">🔍 Thibitisha</button>
+    </div>
+  </div>
+
+  <!-- WAGENI PAGE -->
+  <div class="page" id="page-guests">
+    <select class="event-select" id="guest-event-filter" onchange="loadGuestsList()">
+      <option value="">-- Chagua Tukio --</option>
+    </select>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button onclick="filterGuests('all')" id="f-all"
+        style="flex:1;padding:10px;border:2px solid var(--blue-light);border-radius:10px;background:var(--blue-light);color:white;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px">
+        Wote
+      </button>
+      <button onclick="filterGuests('arrived')" id="f-arrived"
+        style="flex:1;padding:10px;border:2px solid var(--gray-200);border-radius:10px;background:white;color:var(--gray-600);font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px">
+        Waliofika ✅
+      </button>
+      <button onclick="filterGuests('pending')" id="f-pending"
+        style="flex:1;padding:10px;border:2px solid var(--gray-200);border-radius:10px;background:white;color:var(--gray-600);font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px">
+        Hawajafika ⏳
+      </button>
+    </div>
+
+    <div class="card">
+      <div id="guests-list">
+        <div class="empty">
+          <div class="empty-icon">👥</div>
+          <div class="empty-title">Chagua tukio kwanza</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div class="page" id="page-profile">
+    <div class="profile-header">
+      <div class="profile-avatar" id="pwa-avatar">M</div>
+      <div class="profile-name" id="pwa-name">Meshez</div>
+      <div class="profile-email" id="pwa-email">-</div>
+    </div>
+
+    <button class="menu-item" onclick="switchPage('dashboard')">
+      <div class="menu-left">
+        <div class="menu-icon">📊</div>
+        <div>
+          <div class="menu-text">Dashboard</div>
+          <div class="menu-sub">Takwimu za tukio</div>
+        </div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </button>
+
+    <button class="menu-item" onclick="switchPage('scanner')">
+      <div class="menu-left">
+        <div class="menu-icon">📷</div>
+        <div>
+          <div class="menu-text">Scanner</div>
+          <div class="menu-sub">Scan QR code za wageni</div>
+        </div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </button>
+
+    <button class="menu-item" onclick="refreshAll()">
+      <div class="menu-left">
+        <div class="menu-icon">🔄</div>
+        <div>
+          <div class="menu-text">Sasisha Data</div>
+          <div class="menu-sub">Pata taarifa za hivi karibuni</div>
+        </div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </button>
+
+    <button class="menu-item" onclick="installApp()">
+      <div class="menu-left">
+        <div class="menu-icon">📲</div>
+        <div>
+          <div class="menu-text">Install App</div>
+          <div class="menu-sub">Ongeza kwenye Home Screen</div>
+        </div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </button>
+
+    <button class="btn-logout-pwa" onclick="logout()">🚪 Toka (Logout)</button>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-dashboard" onclick="switchPage('dashboard')">
+      <div class="nav-icon">📊</div>
+      Dashboard
+    </button>
+    <button class="nav-btn" id="nav-scanner" onclick="switchPage('scanner')">
+      <div class="nav-icon">📷</div>
+      Scan
+    </button>
+    <button class="nav-btn" id="nav-guests" onclick="switchPage('guests')">
+      <div class="nav-icon">👥</div>
+      Wageni
+    </button>
+    <button class="nav-btn" id="nav-profile" onclick="switchPage('profile')">
+      <div class="nav-icon">👤</div>
+      Profile
+    </button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="pwa-toast"></div>
+
+<script>
+// ===== SUPABASE =====
+const SUPABASE_URL = 'https://fymjjqembyrlwgktbcgf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5bWpqcWVtYnlybHdna3RiY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MTM0NDUsImV4cCI6MjA5ODA4OTQ0NX0.ZeAvJ3hLcARx03cNUq7R7_khrWUKDjxYh7NeA_X0iAY';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let qrScanner   = null;
+let allGuests   = [];
+let guestFilter = 'all';
+let deferredPrompt = null;
+
+// ===== SPLASH =====
+window.addEventListener('load', () => {
+  setTimeout(async () => {
+    const { data } = await db.auth.getSession();
+    document.getElementById('splash').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('splash').style.display = 'none';
+      if (data.session) {
+        currentUser = data.session.user;
+        showApp();
+      } else {
+        document.getElementById('auth-screen').style.display = 'flex';
+      }
+    }, 500);
+  }, 2000);
+});
+
+// ===== PWA INSTALL =====
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'flex';
+});
+
+async function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') toast('App imeinstallwa! ✅', 'success');
+    deferredPrompt = null;
+    document.getElementById('install-banner').style.display = 'none';
+  } else {
+    toast('Tumia browser ya Chrome na bonyeza "Add to Home Screen"', '');
+  }
+}
+
+// ===== AUTH =====
+async function login() {
+  const email = document.getElementById('auth-email').value;
+  const pass  = document.getElementById('auth-pass').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+  if (!email||!pass) { showAuthError('Jaza email na neno la siri!'); return; }
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+  if (error) { showAuthError(error.message); return; }
+  currentUser = data.user;
+  showApp();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = '❌ ' + msg;
+  el.style.display = 'block';
+}
+
+async function logout() {
+  if (!confirm('Unataka kutoka?')) return;
+  await db.auth.signOut();
+  if (qrScanner) { try { qrScanner.stop(); } catch(e){} qrScanner = null; }
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+// ===== SHOW APP =====
+async function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const name = currentUser?.user_metadata?.full_name || currentUser?.email || 'User';
+  const initial = name[0].toUpperCase();
+  document.getElementById('pwa-avatar').textContent = initial;
+  document.getElementById('pwa-name').textContent = name.split(' ')[0];
+  document.getElementById('pwa-email').textContent = currentUser?.email || '';
+  await loadEventsDropdowns();
+  await loadDashboard();
+  registerSW();
+}
+
+// ===== SERVICE WORKER =====
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.log(e));
+  }
+}
+
+// ===== NAVIGATION =====
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const navBtn = document.getElementById('nav-' + page);
+  if (navBtn) navBtn.classList.add('active');
+
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'scanner')   initScanner();
+  if (page === 'guests')    loadGuestsList();
+  if (page !== 'scanner' && qrScanner) {
+    try { qrScanner.stop(); } catch(e){}
+    qrScanner = null;
+  }
+}
+
+// ===== LOAD EVENTS =====
+async function loadEventsDropdowns() {
+  const { data } = await db.from('events').select('id,name')
+    .eq('user_id', currentUser.id).order('created_at', {ascending:false});
+
+  const selects = ['dash-event','scan-event','guest-event-filter'];
+  selects.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">-- Chagua Tukio --</option>' +
+      (data||[]).map(ev => `<option value="${ev.id}">${ev.name}</option>`).join('');
+  });
+
+  if (data?.length) {
+    ['dash-event','scan-event','guest-event-filter'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = data[0].id;
+    });
+    document.getElementById('topbar-event').textContent = data[0].name;
+  }
+}
+
+// ===== DASHBOARD =====
+async function loadDashboard() {
+  const evId = document.getElementById('dash-event').value;
+  let q = db.from('guests').select('group_size,used_count,name,status,updated_at')
+    .eq('user_id', currentUser.id);
+  if (evId) q = q.eq('event_id', evId);
+  const { data } = await q;
+
+  const total   = data?.reduce((s,g) => s+(g.group_size||1), 0) || 0;
+  const arrived = data?.reduce((s,g) => s+(g.used_count||0), 0) || 0;
+  const pending = total - arrived;
+  const pct     = total > 0 ? Math.round(arrived/total*100) : 0;
+
+  document.getElementById('d-total').textContent   = total;
+  document.getElementById('d-arrived').textContent = arrived;
+  document.getElementById('d-pending').textContent = pending;
+  document.getElementById('d-pct').textContent     = pct + '%';
+  document.getElementById('d-progress').style.width = pct + '%';
+  document.getElementById('d-arrived-lbl').textContent = `${arrived} wamefika`;
+  document.getElementById('d-total-lbl').textContent   = `${total} walioalikwa`;
+
+  // Recent scans
+  const recent = data?.filter(g => g.used_count > 0)
+    .sort((a,b) => new Date(b.updated_at||0) - new Date(a.updated_at||0))
+    .slice(0, 5) || [];
+
+  const recentEl = document.getElementById('recent-scans');
+  if (!recent.length) {
+    recentEl.innerHTML = `<div class="empty"><div class="empty-icon">📷</div><div class="empty-title">Hakuna scans bado</div></div>`;
+    return;
+  }
+  recentEl.innerHTML = recent.map(g => `
+    <div class="guest-item">
+      <div class="guest-left">
+        <div class="guest-name">${g.name}</div>
+        <div class="guest-sub">${g.used_count}/${g.group_size} wameingia</div>
+      </div>
+      <span class="badge ${g.status==='Imekamilika'?'badge-green':'badge-orange'}">
+        ${g.status==='Imekamilika'?'✅ Kamili':'🟡 Partial'}
+      </span>
+    </div>
+  `).join('');
+}
+
+function updateScanEvent() {
+  const evId = document.getElementById('scan-event').value;
+  const evName = document.getElementById('scan-event').options[document.getElementById('scan-event').selectedIndex]?.text || '';
+  document.getElementById('topbar-event').textContent = evName || 'Scanner System';
+}
+
+// ===== SCANNER =====
+function initScanner() {
+  if (qrScanner) return;
+  document.getElementById('scan-result-pwa').innerHTML = '';
+  qrScanner = new Html5QrcodeScanner(
+    "qr-reader-pwa",
+    { fps:10, qrbox:{width:250,height:250},
+      rememberLastUsedCamera:true, showTorchButtonIfSupported:true },
+    false
+  );
+  qrScanner.render(async (text) => {
+    document.getElementById('manual-id').value = text;
+    await verifyCard(text);
+  }, () => {});
+}
+
+async function verifyManual() {
+  const id = document.getElementById('manual-id').value.trim().toUpperCase();
+  if (!id) { toast('Andika ID ya kadi!', 'error'); return; }
+  await verifyCard(id);
+}
+
+async function verifyCard(cardId) {
+  const { data, error } = await db.from('guests').select('*')
+    .eq('card_id', cardId).single();
+
+  const area = document.getElementById('scan-result-pwa');
+
+  if (error || !data) {
+    playBeep('error');
+    area.innerHTML = `
+      <div class="scan-result error">
+        <div class="result-icon">❌</div>
+        <div class="result-title" style="color:var(--danger)">KADI SI HALALI</div>
+        <div class="result-sub">QR code hii haipo kwenye mfumo</div>
+      </div>`;
+    return;
+  }
+
+  const nafasi = (data.group_size||1) - (data.used_count||0);
+
+  if (data.status === 'Imekamilika' || nafasi <= 0) {
+    playBeep('warning');
+    area.innerHTML = `
+      <div class="scan-result warning">
+        <div class="result-icon">⚠️</div>
+        <div class="result-title" style="color:var(--warning)">GROUP IMEKAMILIKA</div>
+        <div class="result-name">${data.name}</div>
+        <div class="result-sub">Watu wote ${data.group_size}/${data.group_size} walikwisha ingia</div>
+      </div>`;
+    return;
+  }
+
+  playBeep('success');
+  area.innerHTML = `
+    <div class="scan-result success">
+      <div class="result-icon">✅</div>
+      <div class="result-title" style="color:var(--success)">KADI HALALI</div>
+      <div class="result-name">${data.name}</div>
+      <div class="result-sub">Nafasi Zilizobaki: <strong>${nafasi}</strong> / ${data.group_size}</div>
+      <div class="progress-bar" style="margin:12px 0">
+        <div class="progress-fill" style="width:${Math.round((data.used_count||0)/data.group_size*100)}%"></div>
+      </div>
+    </div>
+    <div class="confirm-section">
+      <label style="font-size:13px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:10px">
+        Watu wanaoingia SASA:
+      </label>
+      <input type="number" class="count-input" id="confirm-num"
+        value="1" min="1" max="${nafasi}">
+      <button class="btn-confirm" onclick="confirmEntry('${data.id}', ${data.used_count||0}, ${data.group_size})">
+        ✅ Thibitisha Ufike
+      </button>
+    </div>`;
+
+  document.getElementById('manual-id').value = '';
+}
+
+async function confirmEntry(id, current, groupSize) {
+  const adding   = parseInt(document.getElementById('confirm-num').value)||1;
+  const newCount = current + adding;
+  const newStatus = newCount >= groupSize ? 'Imekamilika' : 'Halali';
+
+  await db.from('guests').update({
+    used_count: newCount, status: newStatus, updated_at: new Date().toISOString()
+  }).eq('id', id);
+
+  toast(`✅ ${newCount}/${groupSize} wameingia!`, 'success');
+  document.getElementById('scan-result-pwa').innerHTML = `
+    <div class="scan-result success">
+      <div class="result-icon">🎉</div>
+      <div class="result-title" style="color:var(--success)">Imethbitishwa!</div>
+      <div class="result-sub">${newCount}/${groupSize} wameingia • Wanaobaki: ${groupSize-newCount}</div>
+    </div>`;
+  loadDashboard();
+}
+
+// ===== GUESTS LIST =====
+async function loadGuestsList() {
+  const evId = document.getElementById('guest-event-filter').value;
+  if (!evId) {
+    document.getElementById('guests-list').innerHTML =
+      `<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Chagua tukio kwanza</div></div>`;
+    return;
+  }
+
+  const { data } = await db.from('guests').select('*')
+    .eq('event_id', evId).order('name');
+  allGuests = data || [];
+  renderGuests();
+}
+
+function filterGuests(type) {
+  guestFilter = type;
+  ['all','arrived','pending'].forEach(t => {
+    const btn = document.getElementById('f-' + t);
+    if (btn) {
+      btn.style.background = t===type ? 'var(--blue-light)' : 'white';
+      btn.style.color = t===type ? 'white' : 'var(--gray-600)';
+      btn.style.borderColor = t===type ? 'var(--blue-light)' : 'var(--gray-200)';
+    }
+  });
+  renderGuests();
+}
+
+function renderGuests() {
+  let list = allGuests;
+  if (guestFilter === 'arrived') list = list.filter(g => g.used_count > 0);
+  if (guestFilter === 'pending') list = list.filter(g => g.used_count === 0);
+
+  const el = document.getElementById('guests-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Hakuna wageni</div></div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(g => {
+    const label = g.group_size===1?'SINGLE':g.group_size===2?'DOUBLE':g.group_size===3?'TRIPLE':`GROUP-${g.group_size}`;
+    const badge = g.status==='Imekamilika'?'badge-green':g.used_count>0?'badge-orange':'badge-gray';
+    const status = g.status==='Imekamilika'?'✅ Kamili':g.used_count>0?`🟡 ${g.used_count}/${g.group_size}`:'⏳ Hajakuja';
+    return `
+    <div class="guest-item">
+      <div class="guest-left">
+        <div class="guest-name">${g.name}</div>
+        <div class="guest-sub">${label} • ${g.card_id||'-'}</div>
+      </div>
+      <span class="badge ${badge}">${status}</span>
+    </div>`;
+  }).join('');
+}
+
+// ===== BEEP =====
+function playBeep(type) {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type==='success'?'sine':type==='error'?'sawtooth':'square';
+    osc.frequency.value = type==='success'?880:type==='error'?200:440;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.5);
+    osc.start(); osc.stop(ctx.currentTime+0.5);
+  } catch(e){}
+}
+
+// ===== TOAST =====
+function toast(msg, type='') {
+  const el = document.getElementById('pwa-toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ===== REFRESH =====
+async function refreshAll() {
+  await loadEventsDropdowns();
+  await loadDashboard();
+  toast('Imesasishwa! ✅', 'success');
+}
+</script>
+</body>
+</html>

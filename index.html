@@ -794,6 +794,17 @@ body {
       <div class="menu-arrow">›</div>
     </button>
 
+    <button class="menu-item" onclick="shareScannerLink()">
+      <div class="menu-left">
+        <div class="menu-icon">🔗</div>
+        <div>
+          <div class="menu-text">Shiriki Link ya Scanner</div>
+          <div class="menu-sub">Tuma kwa scanner/mlinzi mwingine</div>
+        </div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </button>
+
     <button class="btn-logout-pwa" onclick="logout()">🚪 Toka (Logout)</button>
   </div>
 
@@ -891,6 +902,29 @@ async function installApp() {
     document.getElementById('install-banner').style.display = 'none';
   } else {
     toast('Tumia browser ya Chrome na bonyeza "Add to Home Screen"', '');
+  }
+}
+
+// ===== SHARE SCANNER LINK =====
+// Inasaidia kutuma link ya scanner kwa watu wapya (mfano ma-scanner/walinzi)
+// bila kuhitaji kuunda account mpya - watatumia email/password waliopewa na admin.
+const SCANNER_APP_LINK = 'https://ezekielmeshack136-max.github.io/meshez-kadi-scanner/';
+
+async function shareScannerLink() {
+  const message = `Karibu Meshez Kadi Scanner!\n\nTumia link hii kufungua scanner:\n${SCANNER_APP_LINK}\n\nIngia (login) kwa email na password ulizopewa.`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Meshez Kadi Scanner', text: message, url: SCANNER_APP_LINK });
+      return;
+    } catch (e) { /* mtumiaji ame-cancel au haipatikani, endelea chini */ }
+  }
+
+  try {
+    await navigator.clipboard.writeText(message);
+    toast('Link imenakiliwa! Sasa bandika (paste) kwenye WhatsApp', 'success');
+  } catch (e) {
+    prompt('Nakili link hii:', SCANNER_APP_LINK);
   }
 }
 

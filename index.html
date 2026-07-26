@@ -1036,6 +1036,10 @@ async function verifyCard(cardId) {
         <div class="result-icon">❌</div>
         <div class="result-title" style="color:var(--danger)">KADI SI HALALI</div>
         <div class="result-sub">QR code hii haipo kwenye mfumo</div>
+        <div style="margin-top:12px;padding:10px;background:#fee;border-radius:8px;font-size:11px;text-align:left;word-break:break-all;">
+          DEBUG cardId: "${cardId}"<br>
+          DEBUG error: ${error ? JSON.stringify({message:error.message,code:error.code,details:error.details,hint:error.hint}) : 'hakuna data (data=null)'}
+        </div>
       </div>`;
     return;
   }

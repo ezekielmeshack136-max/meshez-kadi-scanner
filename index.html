@@ -717,6 +717,12 @@ body {
       <option value="">-- Chagua Tukio --</option>
     </select>
 
+    <!-- Search Box -->
+    <div style="position:relative;margin-bottom:12px">
+      <input type="text" id="guest-search" oninput="renderGuests()" placeholder="🔍 Tafuta mgeni kwa jina au ID ya kadi..."
+        style="width:100%;padding:12px 14px;border:2px solid var(--gray-200);border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;box-sizing:border-box">
+    </div>
+
     <div style="display:flex;gap:8px;margin-bottom:14px">
       <button onclick="filterGuests('all')" id="f-all"
         style="flex:1;padding:10px;border:2px solid var(--blue-light);border-radius:10px;background:var(--blue-light);color:white;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px">
@@ -837,13 +843,7 @@ body {
 const SUPABASE_URL = 'https://fymjjqembyrlwgktbcgf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5bWpqcWVtYnlybHdna3RiY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MTM0NDUsImV4cCI6MjA5ODA4OTQ0NX0.ZeAvJ3hLcARx03cNUq7R7_khrWUKDjxYh7NeA_X0iAY';
 const { createClient } = supabase;
-// persistSession: false + autoRefreshToken: false = usalama zaidi. Session HAIHIFADHIWI
-// kwenye kifaa - mtu akifunga app/tab, au simu ikizima, au aki-refresh ukurasa,
-// atahitaji kuingia (login) upya na password yake. Hii inazuia mtu mwingine
-// kupokea simu/kifaa kilichoachwa wazi na kuendelea kutumia account ya mwenzake.
-const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false }
-});
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let currentProfile = null;
@@ -1236,6 +1236,8 @@ async function confirmEntry(id, current, groupSize) {
 // ===== GUESTS LIST =====
 async function loadGuestsList() {
   const evId = document.getElementById('guest-event-filter').value;
+  const searchEl = document.getElementById('guest-search');
+  if (searchEl) searchEl.value = '';
   if (!evId) {
     document.getElementById('guests-list').innerHTML =
       `<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Chagua tukio kwanza</div></div>`;
@@ -1266,9 +1268,17 @@ function renderGuests() {
   if (guestFilter === 'arrived') list = list.filter(g => g.used_count > 0);
   if (guestFilter === 'pending') list = list.filter(g => g.used_count === 0);
 
+  const searchTerm = (document.getElementById('guest-search')?.value || '').trim().toLowerCase();
+  if (searchTerm) {
+    list = list.filter(g =>
+      (g.name || '').toLowerCase().includes(searchTerm) ||
+      (g.card_id || '').toLowerCase().includes(searchTerm)
+    );
+  }
+
   const el = document.getElementById('guests-list');
   if (!list.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Hakuna wageni</div></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Hakuna wageni waliolingana na utafutaji</div></div>`;
     return;
   }
 

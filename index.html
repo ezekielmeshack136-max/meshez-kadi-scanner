@@ -837,7 +837,13 @@ body {
 const SUPABASE_URL = 'https://fymjjqembyrlwgktbcgf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5bWpqcWVtYnlybHdna3RiY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MTM0NDUsImV4cCI6MjA5ODA4OTQ0NX0.ZeAvJ3hLcARx03cNUq7R7_khrWUKDjxYh7NeA_X0iAY';
 const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+// persistSession: false + autoRefreshToken: false = usalama zaidi. Session HAIHIFADHIWI
+// kwenye kifaa - mtu akifunga app/tab, au simu ikizima, au aki-refresh ukurasa,
+// atahitaji kuingia (login) upya na password yake. Hii inazuia mtu mwingine
+// kupokea simu/kifaa kilichoachwa wazi na kuendelea kutumia account ya mwenzake.
+const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false }
+});
 
 let currentUser = null;
 let currentProfile = null;
@@ -911,7 +917,7 @@ async function installApp() {
 const SCANNER_APP_LINK = 'https://ezekielmeshack136-max.github.io/meshez-kadi-scanner/';
 
 async function shareScannerLink() {
-  const message = `Karibu Meshez Kadi Scanner!\n\nTumia link hii kufungua scanner:\n${SCANNER_APP_LINK}\n\nIngia (login) kwa email na password ulizopewa.`;
+  const message = `Karibu Meshez Kadi Scanner! Tumia link hii kufungua scanner Ingia (login) kwa email na password ulizopewa: ${SCANNER_APP_LINK} .`;
 
   if (navigator.share) {
     try {

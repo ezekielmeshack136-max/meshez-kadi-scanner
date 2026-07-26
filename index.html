@@ -687,6 +687,12 @@ body {
       <option value="">-- Chagua Tukio --</option>
     </select>
 
+    <!-- Live Attendance Counter -->
+    <div style="background:var(--blue-dark);color:white;border-radius:12px;padding:10px 14px;margin:10px 0;display:flex;align-items:center;justify-content:space-between;font-weight:600;">
+      <span>👥 Waliohudhuria (Live)</span>
+      <span id="liveAttendedCount">0 / 0</span>
+    </div>
+
     <!-- QR Reader -->
     <div class="card" style="padding:12px">
       <div id="qr-reader-pwa"></div>
@@ -953,6 +959,10 @@ function switchPage(page) {
     try { qrScanner.stop(); } catch(e){}
     qrScanner = null;
   }
+  if (page !== 'scanner' && liveChannel) {
+    db.removeChannel(liveChannel);
+    liveChannel = null;
+  }
 }
 
 // ===== LOAD EVENTS =====
@@ -1041,16 +1051,54 @@ async function loadDashboard() {
   `).join('');
 }
 
+let liveChannel = null;
+
 function updateScanEvent() {
   const evId = document.getElementById('scan-event').value;
   const evName = document.getElementById('scan-event').options[document.getElementById('scan-event').selectedIndex]?.text || '';
   document.getElementById('topbar-event').textContent = evName || 'Scanner System';
+  refreshLiveAttendedCount();
+  subscribeLiveCount(evId);
+}
+
+// Inasoma FRESH kutoka database (si kumbukumbu ya kifaa) - hivyo scanner zote
+// zinazofanya kazi na event moja zitaonyesha NAMBA ILE ILE, hakuna "huku na huku".
+async function refreshLiveAttendedCount() {
+  const el = document.getElementById('liveAttendedCount');
+  const evId = document.getElementById('scan-event').value;
+  if (!el) return;
+  if (!evId) { el.textContent = '0 / 0'; return; }
+
+  const { data: guests } = await db.from('guests').select('used_count,group_size').eq('event_id', evId);
+  const attended = (guests || []).reduce((s, g) => s + (g.used_count || 0), 0);
+  const total    = (guests || []).reduce((s, g) => s + (g.group_size || 1), 0);
+  el.textContent = `${attended} / ${total}`;
+}
+
+// Supabase Realtime: scanner zote zinazofuatilia event hii hii "zinasikilizana" -
+// mtu akithibitisha mgeni kwenye kifaa kimoja, vifaa vingine vinaona badiliko papo hapo.
+function subscribeLiveCount(eventId) {
+  if (liveChannel) {
+    db.removeChannel(liveChannel);
+    liveChannel = null;
+  }
+  if (!eventId) return;
+
+  liveChannel = db
+    .channel('guests-live-' + eventId)
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'guests', filter: 'event_id=eq.' + eventId },
+      () => { refreshLiveAttendedCount(); }
+    )
+    .subscribe();
 }
 
 // ===== SCANNER =====
 function initScanner() {
   if (qrScanner) return;
   document.getElementById('scan-result-pwa').innerHTML = '';
+  refreshLiveAttendedCount();
+  subscribeLiveCount(document.getElementById('scan-event').value);
   qrScanner = new Html5QrcodeScanner(
     "qr-reader-pwa",
     { fps:10, qrbox:{width:250,height:250},
@@ -1141,6 +1189,7 @@ async function confirmEntry(id, current, groupSize) {
       <div class="result-title" style="color:var(--success)">Imethbitishwa!</div>
       <div class="result-sub">${newCount}/${groupSize} wameingia • Wanaobaki: ${groupSize-newCount}</div>
     </div>`;
+  refreshLiveAttendedCount();
   loadDashboard();
 }
 

@@ -823,7 +823,31 @@ const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
+let currentProfile = null;
+let ORG_OWNER_ID = null;
 let qrScanner   = null;
+
+// Inapata role ya mtumiaji (admin/manager/scanner) kutoka jedwali la profiles
+async function loadMyProfile() {
+  const { data, error } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
+  if (error) { console.error('Imeshindwa kupata profile:', error); return; }
+  currentProfile = data;
+}
+
+// Inapata ID ya mwenye mfumo (owner) - events/guests zote ni chake, kupitia RPC
+// (SECURITY DEFINER hivyo inafanya kazi kwa role zote bila kutegemea RLS ya profiles)
+async function loadOrgOwnerId() {
+  const { data, error } = await db.rpc('get_org_owner_id');
+  if (error) { console.error('Imeshindwa kupata org owner id:', error); ORG_OWNER_ID = currentUser?.id || null; return; }
+  ORG_OWNER_ID = data || currentUser?.id;
+}
+
+// Inapata orodha ya event_id ambazo manager/scanner huyu amepewa ruhusa
+async function getMyAccessibleEventIds() {
+  const { data, error } = await db.from('event_access').select('event_id').eq('profile_id', currentUser.id);
+  if (error) { console.error('Imeshindwa kupata event_access:', error); return []; }
+  return (data || []).map(r => r.event_id);
+}
 let allGuests   = [];
 let guestFilter = 'all';
 let deferredPrompt = null;
@@ -900,6 +924,8 @@ async function showApp() {
   document.getElementById('pwa-avatar').textContent = initial;
   document.getElementById('pwa-name').textContent = name.split(' ')[0];
   document.getElementById('pwa-email').textContent = currentUser?.email || '';
+  await loadMyProfile();
+  await loadOrgOwnerId();
   await loadEventsDropdowns();
   await loadDashboard();
   registerSW();
@@ -931,23 +957,43 @@ function switchPage(page) {
 
 // ===== LOAD EVENTS =====
 async function loadEventsDropdowns() {
-  const { data } = await db.from('events').select('id,name')
-    .eq('user_id', currentUser.id).order('created_at', {ascending:false});
+  const role = currentProfile?.role || 'admin';
+  let data = [];
+
+  if (role === 'admin') {
+    // Admin/owner anaona matukio yote aliyounda
+    const { data: allEvents } = await db.from('events').select('id,name')
+      .eq('user_id', ORG_OWNER_ID).order('created_at', {ascending:false});
+    data = allEvents || [];
+  } else {
+    // Manager/Scanner: waonyeshwe TU matukio waliyopewa ruhusa (event_access)
+    const eventIds = await getMyAccessibleEventIds();
+    if (eventIds.length === 0) {
+      toast('Hujapewa ruhusa ya event yoyote bado. Wasiliana na admin.', 'error');
+      data = [];
+    } else {
+      const { data: allowedEvents } = await db.from('events').select('id,name')
+        .in('id', eventIds).order('created_at', {ascending:false});
+      data = allowedEvents || [];
+    }
+  }
 
   const selects = ['dash-event','scan-event','guest-event-filter'];
   selects.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = '<option value="">-- Chagua Tukio --</option>' +
-      (data||[]).map(ev => `<option value="${ev.id}">${ev.name}</option>`).join('');
+      data.map(ev => `<option value="${ev.id}">${ev.name}</option>`).join('');
   });
 
-  if (data?.length) {
+  if (data.length) {
     ['dash-event','scan-event','guest-event-filter'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = data[0].id;
     });
     document.getElementById('topbar-event').textContent = data[0].name;
+  } else {
+    document.getElementById('topbar-event').textContent = 'Hakuna Event';
   }
 }
 
@@ -955,7 +1001,7 @@ async function loadEventsDropdowns() {
 async function loadDashboard() {
   const evId = document.getElementById('dash-event').value;
   let q = db.from('guests').select('group_size,used_count,name,status,updated_at')
-    .eq('user_id', currentUser.id);
+    .eq('user_id', ORG_OWNER_ID);
   if (evId) q = q.eq('event_id', evId);
   const { data } = await q;
 
@@ -1036,10 +1082,6 @@ async function verifyCard(cardId) {
         <div class="result-icon">❌</div>
         <div class="result-title" style="color:var(--danger)">KADI SI HALALI</div>
         <div class="result-sub">QR code hii haipo kwenye mfumo</div>
-        <div style="margin-top:12px;padding:10px;background:#fee;border-radius:8px;font-size:11px;text-align:left;word-break:break-all;">
-          DEBUG cardId: "${cardId}"<br>
-          DEBUG error: ${error ? JSON.stringify({message:error.message,code:error.code,details:error.details,hint:error.hint}) : 'hakuna data (data=null)'}
-        </div>
       </div>`;
     return;
   }

@@ -1174,6 +1174,22 @@ async function verifyCard(cardId) {
     return;
   }
 
+  // Uhalali wa kadi unategemeana na EVENT iliyochaguliwa sasa kwenye scanner -
+  // kama kadi ni ya event tofauti, ikatae hata kama mgeni yupo kwenye mfumo.
+  const selectedEventId = document.getElementById('scan-event').value;
+  if (selectedEventId && data.event_id !== selectedEventId) {
+    const { data: correctEvent } = await db.from('events').select('name').eq('id', data.event_id).single();
+    playBeep('error');
+    area.innerHTML = `
+      <div class="scan-result error">
+        <div class="result-icon">⚠️</div>
+        <div class="result-title" style="color:var(--danger)">MTU HUYU HAYUPO KATIKA EVENT HII</div>
+        <div class="result-name">${data.name}</div>
+        <div class="result-sub">Kadi hii ni ya event <strong>"${correctEvent?.name || 'nyingine'}"</strong>, si event uliyochagua sasa.</div>
+      </div>`;
+    return;
+  }
+
   const nafasi = (data.group_size||1) - (data.used_count||0);
 
   if (data.status === 'Imekamilika' || nafasi <= 0) {

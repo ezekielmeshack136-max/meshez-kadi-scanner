@@ -297,8 +297,19 @@ body {
 .empty-icon { font-size: 52px; margin-bottom: 12px; }
 .empty-icon svg { width: 44px; height: 44px; color: var(--gray-400); }
 
-.menu-icon { font-size: 22px; }
+.menu-icon {
+  font-size: 22px;
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
 .menu-icon svg { width: 20px; height: 20px; }
+.menu-icon.mi-blue   { background: #EFF6FF; color: var(--blue-light); }
+.menu-icon.mi-orange { background: #FFF7ED; color: var(--orange); }
+.menu-icon.mi-green  { background: #F0FDF4; color: var(--success); }
+.menu-icon.mi-purple { background: #F5F3FF; color: #7C3AED; }
+.menu-icon.mi-teal   { background: #F0FDFA; color: #0D9488; }
 
 .badge svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 2px; }
 
@@ -345,17 +356,29 @@ body {
   padding: 16px; text-align: center;
   box-shadow: 0 2px 12px rgba(11,37,69,0.08);
   position: relative; overflow: hidden;
+  border: 1.5px solid var(--gray-100);
 }
 
 .stat-box::before {
   content: ''; position: absolute;
-  top: 0; left: 0; right: 0; height: 3px;
+  top: 0; left: 0; right: 0; height: 4px;
 }
 
-.stat-box.blue::before { background: var(--blue-light); }
+.stat-box.blue   { background: linear-gradient(160deg, #EFF6FF, #ffffff 65%); border-color: #DBEAFE; }
+.stat-box.blue::before   { background: var(--blue-light); }
+.stat-box.blue .stat-num { color: var(--blue-light); }
+
+.stat-box.orange { background: linear-gradient(160deg, #FFF7ED, #ffffff 65%); border-color: #FED7AA; }
 .stat-box.orange::before { background: var(--orange); }
-.stat-box.green::before { background: var(--success); }
-.stat-box.red::before { background: var(--danger); }
+.stat-box.orange .stat-num { color: var(--orange); }
+
+.stat-box.green  { background: linear-gradient(160deg, #F0FDF4, #ffffff 65%); border-color: #BBF7D0; }
+.stat-box.green::before  { background: var(--success); }
+.stat-box.green .stat-num { color: var(--success); }
+
+.stat-box.red    { background: linear-gradient(160deg, #FEF2F2, #ffffff 65%); border-color: #FECACA; }
+.stat-box.red::before    { background: var(--danger); }
+.stat-box.red .stat-num  { color: var(--danger); }
 
 .stat-num {
   font-family: 'Space Grotesk', sans-serif;
@@ -479,20 +502,32 @@ body {
 
 .btn-verify {
   width: 100%; padding: 14px;
-  background: var(--blue-mid); color: white;
-  border: none; border-radius: 12px;
+  background: linear-gradient(135deg, var(--blue-mid), var(--blue-light));
+  color: white; border: none; border-radius: 12px;
   font-size: 15px; font-weight: 700;
   font-family: 'Plus Jakarta Sans', sans-serif;
   cursor: pointer;
+  box-shadow: 0 6px 18px rgba(46,125,209,0.3);
+  transition: transform 0.15s;
 }
+
+.btn-verify:active { transform: scale(0.98); }
 
 /* Guests List */
 .guest-item {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 0; border-bottom: 1px solid var(--gray-100);
+  padding: 14px 12px; margin-bottom: 8px;
+  border-radius: 12px;
+  border-left: 4px solid var(--gray-200);
+  background: var(--gray-50);
+  transition: background 0.2s;
 }
 
-.guest-item:last-child { border-bottom: none; }
+.guest-item:last-child { margin-bottom: 0; }
+
+.guest-item-done    { border-left-color: var(--success); background: #F0FDF4; }
+.guest-item-partial { border-left-color: var(--orange);  background: #FFF7ED; }
+.guest-item-pending  { border-left-color: var(--gray-400); background: var(--gray-50); }
 
 .guest-left { flex: 1; }
 
@@ -812,7 +847,7 @@ body {
 
     <button class="menu-item" onclick="switchPage('dashboard')">
       <div class="menu-left">
-        <div class="menu-icon"><i data-lucide="bar-chart-3"></i></div>
+        <div class="menu-icon mi-blue"><i data-lucide="bar-chart-3"></i></div>
         <div>
           <div class="menu-text">Dashboard</div>
           <div class="menu-sub">Takwimu za tukio</div>
@@ -823,7 +858,7 @@ body {
 
     <button class="menu-item" onclick="switchPage('scanner')">
       <div class="menu-left">
-        <div class="menu-icon"><i data-lucide="scan-line"></i></div>
+        <div class="menu-icon mi-orange"><i data-lucide="scan-line"></i></div>
         <div>
           <div class="menu-text">Scanner</div>
           <div class="menu-sub">Scan QR code za wageni</div>
@@ -834,7 +869,7 @@ body {
 
     <button class="menu-item" onclick="refreshAll()">
       <div class="menu-left">
-        <div class="menu-icon"><i data-lucide="refresh-cw"></i></div>
+        <div class="menu-icon mi-green"><i data-lucide="refresh-cw"></i></div>
         <div>
           <div class="menu-text">Sasisha Data</div>
           <div class="menu-sub">Pata taarifa za hivi karibuni</div>
@@ -845,7 +880,7 @@ body {
 
     <button class="menu-item" onclick="installApp()">
       <div class="menu-left">
-        <div class="menu-icon"><i data-lucide="download"></i></div>
+        <div class="menu-icon mi-purple"><i data-lucide="download"></i></div>
         <div>
           <div class="menu-text">Install App</div>
           <div class="menu-sub">Ongeza kwenye Home Screen</div>
@@ -856,7 +891,7 @@ body {
 
     <button class="menu-item" onclick="shareScannerLink()">
       <div class="menu-left">
-        <div class="menu-icon"><i data-lucide="share-2"></i></div>
+        <div class="menu-icon mi-teal"><i data-lucide="share-2"></i></div>
         <div>
           <div class="menu-text">Shiriki Link ya Scanner</div>
           <div class="menu-sub">Tuma kwa scanner/mlinzi mwingine</div>
@@ -1137,7 +1172,7 @@ async function loadDashboard() {
     return;
   }
   recentEl.innerHTML = recent.map(g => `
-    <div class="guest-item">
+    <div class="guest-item ${g.status==='Imekamilika'?'guest-item-done':'guest-item-partial'}">
       <div class="guest-left">
         <div class="guest-name">${g.name}</div>
         <div class="guest-sub">${g.used_count}/${g.group_size} wameingia</div>
@@ -1400,9 +1435,10 @@ function renderGuests() {
   el.innerHTML = list.map(g => {
     const label = g.group_size===1?'SINGLE':g.group_size===2?'DOUBLE':g.group_size===3?'TRIPLE':`GROUP-${g.group_size}`;
     const badge = g.status==='Imekamilika'?'badge-green':g.used_count>0?'badge-orange':'badge-gray';
+    const rowClass = g.status==='Imekamilika'?'guest-item-done':g.used_count>0?'guest-item-partial':'guest-item-pending';
     const status = g.status==='Imekamilika'?'<i data-lucide="check-circle-2"></i> Kamili':g.used_count>0?`<i data-lucide="circle-dot"></i> ${g.used_count}/${g.group_size}`:'<i data-lucide="clock"></i> Hajakuja';
     return `
-    <div class="guest-item">
+    <div class="guest-item ${rowClass}">
       <div class="guest-left">
         <div class="guest-name">${g.name}</div>
         <div class="guest-sub">${label} • ${g.card_id||'-'}</div>

@@ -1330,110 +1330,152 @@ async function shareScannerLink() {
 }
 
 
-/* ===== SYSTEM LANGUAGE (SW / EN) ===== */
-const SCANNER_TRANSLATIONS = {
-  'Dashboard':'Dashboard','Scan':'Scan','Wageni':'Guests','Profile':'Profile',
-  'Barua Pepe':'Email address','Nenosiri':'Password','Umesahau neno siri?':'Forgot password?',
-  'Ingia':'Sign in','Vitendo vya Haraka':'Quick actions','Scan QR':'Scan QR','Walioingia Hivi Karibuni':'Recent arrivals',
-  'Walioalikwa':'Invited','Waliofika':'Arrived','Hawajafika':'Not arrived','Ufike':'Attendance',
-  'Maendeleo ya Ufike':'Attendance progress','Chagua Tukio':'Select event','-- Chagua Tukio --':'-- Select event --',
-  'Hakuna Event':'No event','Hakuna scans bado':'No scans yet','Waliohudhuria (Live)':'Attendance (Live)',
-  'Andika ID Kwa Mkono':'Enter ID manually','Thibitisha':'Verify','Wote':'All','Kamili':'Complete',
-  'Hajakuja':'Not arrived','Chagua tukio kwanza':'Select an event first',
-  'Tafuta mgeni kwa jina au ID ya kadi...':'Search guest by name or card ID...',
-  'Hakuna wageni waliolingana na utafutaji':'No guests matched your search',
-  'Takwimu za tukio':'Event statistics','Scan QR code za wageni':'Scan guests’ QR codes',
-  'Sasisha Data':'Refresh data','Pata taarifa za hivi karibuni':'Get the latest information',
-  'Ongeza kwenye Home Screen':'Add to Home Screen','Shiriki Link ya Scanner':'Share scanner link',
-  'Tuma kwa scanner/mlinzi mwingine':'Send to another scanner/guard','Toka (Logout)':'Sign out',
-  'Badili Lugha':'Change language','Chagua lugha ya mfumo':'Choose system language',
-  'Kiswahili (SW)':'Kiswahili (SW)','English (EN)':'English (EN)',
-  'Install App kwenye Simu':'Install app on your phone','Bonyeza hapa kuongeza kwenye Home Screen':'Tap here to add to Home Screen',
-  'Hakuna event bado':'No events yet','Hujapewa ruhusa ya event yoyote bado. Wasiliana na admin.':'You have not been assigned to any event yet. Contact the administrator.',
-  'Jaza email na neno la siri!':'Enter your email and password!','Umethibitisha: ':'Confirmed: ',
-  'wameingia!':'have checked in!','Imesasishwa!':'Updated!','Imethbitishwa!':'Confirmed!',
-  'KADI SI HALALI':'INVALID TICKET','QR code hii haipo kwenye mfumo':'This QR code is not registered in the system',
-  'MTU HUYU HAYUPO KATIKA EVENT HII':'THIS PERSON IS NOT IN THIS EVENT',
-  'GROUP IMEKAMILIKA':'GROUP IS COMPLETE','KADI HALALI':'VALID TICKET',
-  'Nafasi Zilizobaki:':'Remaining spaces:','Watu wanaoingia SASA:':'People checking in NOW:',
-  'Scan Ijayo':'Next scan','Watu wote':'All guests','wameingia':'have checked in',
-  'Wanaobaki:':'Remaining:','Hakuna Event':'No event','Mgeni':'Guest',
-  'SINGLE':'SINGLE','DOUBLE':'DOUBLE','TRIPLE':'TRIPLE','Partial':'Partial',
-  'Jina':'Name','Email':'Email','Tukio':'Event','Inapakia...':'Loading...',
-  'Umetoka':'You have signed out','Unataka kutoka?':'Are you sure you want to sign out?',
-  'Hakuna scans bado':'No scans yet','Scanner System':'Scanner System'
-};
-const SCANNER_REVERSE_TRANSLATIONS = Object.fromEntries(Object.entries(SCANNER_TRANSLATIONS).map(([sw,en])=>[en,sw]));
-let scannerLanguage = (localStorage.getItem('meshez_language') || 'sw') === 'en' ? 'en' : 'sw';
-function translateScannerValue(value) {
-  const source = String(value || '');
-  const trimmed = source.trim();
-  const dictionary = scannerLanguage === 'en' ? SCANNER_TRANSLATIONS : SCANNER_REVERSE_TRANSLATIONS;
-  let translated = dictionary[trimmed];
-  if (!translated) {
-    if (scannerLanguage === 'en') {
-      const patterns = [
-        [/^Hakuna scans bado$/, 'No scans yet'],
-        [/^Chagua tukio kwanza$/, 'Select an event first'],
-        [/^Hakuna wageni waliolingana na utafutaji$/, 'No guests matched your search'],
-        [/^Watu wote (.+) walikwisha ingia$/, 'All $1 people have already checked in'],
-        [/^(.+) wamefika$/, '$1 arrived'],
-        [/^(.+) walioalikwa$/, '$1 invited'],
-        [/^(.+) wameingia$/, '$1 have checked in'],
-        [/^Hujapewa ruhusa ya event yoyote bado\. Wasiliana na admin\.$/, 'You have not been assigned to any event yet. Contact the administrator.']
-      ];
-      for (const [pattern,replacement] of patterns) if (pattern.test(trimmed)) { translated=trimmed.replace(pattern,replacement); break; }
-    }
-  }
-  if (!translated) return value;
-  return source.replace(trimmed, translated);
-}
-function translateScannerDOM(root=document) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-  nodes.forEach(node => {
-    if (!node.nodeValue.trim()) return;
-    const next = translateScannerValue(node.nodeValue);
-    if (next !== node.nodeValue) node.nodeValue = next;
-  });
-  root.querySelectorAll?.('input[placeholder],textarea[placeholder]').forEach(el => {
-    const next = translateScannerValue(el.getAttribute('placeholder'));
-    if (next !== el.getAttribute('placeholder')) el.setAttribute('placeholder',next);
-  });
-  root.querySelectorAll?.('option').forEach(el => {
-    const next = translateScannerValue(el.textContent);
-    if (next !== el.textContent) el.textContent = next;
-  });
-}
-function setScannerLanguage(lang) {
-  scannerLanguage = lang === 'en' ? 'en' : 'sw';
-  localStorage.setItem('meshez_language', scannerLanguage);
-  translateScannerDOM();
-  document.querySelectorAll('#language-panel button').forEach(btn => btn.classList.toggle('active', btn.id === (scannerLanguage === 'en' ? 'lang-en' : 'lang-sw')));
-  const panel = document.getElementById('language-panel');
-  if (panel) panel.hidden = false;
-  try { lucide.createIcons(); } catch(e) {}
-}
-function toggleLanguagePanel() {
-  const panel = document.getElementById('language-panel');
-  if (!panel) return;
-  panel.hidden = !panel.hidden;
-  if (!panel.hidden) {
-    document.querySelectorAll('#language-panel button').forEach(btn => btn.classList.toggle('active', btn.id === (scannerLanguage === 'en' ? 'lang-en' : 'lang-sw')));
-  }
-}
-const scannerLanguageObserver = new MutationObserver(records => {
-  records.forEach(record => record.addedNodes.forEach(node => {
-    if (node.nodeType === Node.ELEMENT_NODE) translateScannerDOM(node);
-    else if (node.nodeType === Node.TEXT_NODE) {
-      const next = translateScannerValue(node.nodeValue);
-      if (next !== node.nodeValue) node.nodeValue = next;
-    }
-  }));
+/* ===== SHARED SWAHILI / ENGLISH LANGUAGE ENGINE ===== */
+const SYSTEM_TRANSLATION_PAIRS = [
+['Dashboard','Dashibodi'],['Event Management','Usimamizi wa Matukio'],['Template Management','Usimamizi wa Violezo'],
+['Digital Invitation','Mwaliko wa Kidijitali'],['Send Invitations','Tuma Mialiko'],['RSVP - Shukrani','RSVP - Shukrani'],
+['WhatsApp Monitor','Ufuatiliaji wa WhatsApp'],['System Reports','Ripoti za Mfumo'],
+['User Management','Usimamizi wa Watumiaji'],['Profile & Settings','Wasifu na Mipangilio'],['Settings','Mipangilio'],
+['Main','Msingi'],['Log Out','Toka'],['Sign In','Ingia'],['Sign Up','Jisajili'],['Email Address','Barua Pepe'],
+['Password','Nenosiri'],['Forgot Password?','Umesahau Nenosiri?'],['Reset Password','Weka Upya Nenosiri'],['Enter the email address registered to your account. We will send you a secure password reset link.','Weka barua pepe iliyosajiliwa kwenye akaunti yako. Tutakutumia kiungo salama cha kuweka upya nenosiri.'],['Email Address','Barua Pepe'],['Send Reset Link','Tuma Kiungo cha Kuweka Upya'],['Back to Sign In','Rudi Kuingia'],['Create a New Password','Tengeneza Nenosiri Jipya'],['Your email has been verified. Enter and confirm your new password below.','Barua pepe yako imethibitishwa. Weka na uthibitishe nenosiri lako jipya hapa chini.'],['Confirm New Password','Thibitisha Nenosiri Jipya'],['Save New Password','Hifadhi Nenosiri Jipya'],['Old Password','Nenosiri la Zamani'],['Enter your current password','Weka nenosiri lako la sasa'],['At least 8 characters','Angalau herufi 8'],['Enter the new password again','Rudia nenosiri jipya'],['New Password','Nenosiri Jipya'],['First Name','Jina la Kwanza'],['Last Name','Jina la Familia'],['Save','Hifadhi'],
+['Save Profile','Hifadhi Wasifu'],['Save Settings','Hifadhi Mipangilio'],
+['Edit','Badilisha'],['Delete','Futa'],['Remove','Ondoa'],['Search','Tafuta'],['Filter','Chuja'],
+['Refresh','Sasisha'],['Refreshing data...','Taarifa zinasasishwa...'],['Add','Ongeza'],['Close','Funga'],
+['Cancel','Ghairi'],['Yes','Ndiyo'],['No','Hapana'],['Back','Rudi'],['Continue','Endelea'],
+['Download','Pakua'],['Upload','Pakia'],['Select','Chagua'],['Choose file','Chagua faili'],
+['No data available','Hakuna taarifa'],['No events yet','Hakuna matukio bado'],
+['Click "+ Event Mpya" to get started','Bonyeza "+ Event Mpya" kuanza'],
+['New Event','Tukio Jipya'],['New Event','Event Mpya'],['Event Name','Jina la Tukio'],
+['Event Type','Aina ya Tukio'],['Event Date','Tarehe ya Tukio'],['Event Venue','Mahali pa Tukio'],
+['Guests','Wageni'],['Guest','Mgeni'],['Add Guest','Ongeza Mgeni'],['Guest Name','Jina la Mgeni'],
+['Phone Number','Namba ya Simu'],['Message','Ujumbe'],['Send','Tuma'],['Send WhatsApp','Tuma WhatsApp'],
+['Send SMS','Tuma SMS'],['Sent','Imetumwa'],['Not sent','Haijatumwa'],['Status','Hali'],
+['Actions','Vitendo'],['Details','Maelezo'],['Overview','Muhtasari'],['Total','Jumla'],
+['Today','Leo'],['Yesterday','Jana'],['This week','Wiki hii'],['This month','Mwezi huu'],
+['Date','Tarehe'],['Time','Muda'],['Type','Aina'],['Name','Jina'],['Phone','Simu'],
+['Permissions','Ruhusa'],['Save Permissions','Hifadhi Ruhusa'],['Permissions saved','Ruhusa zimehifadhiwa'],
+['No permissions','Hakuna ruhusa'],['Create','Tengeneza'],['Create Invitation','Tengeneza Mwaliko'],
+['Design','Muundo'],['Color','Rangi'],['Font','Fonti'],['Image','Picha'],['Logo','Logo'],
+['Appearance','Mwonekano'],['System Appearance','Muonekano wa Mfumo'],['Appearance Mode','Hali ya Mwonekano'],
+['Light Mode','Mwanga'],['Dark Mode','Giza'],
+['System Language','Lugha ya Mfumo'],
+['System Branding','Utambulisho wa Mfumo'],
+['Main Name','Jina Kuu'],['System Theme','Mandhari ya Mfumo'],['Slogan','Kaulimbiu'],
+['System Logo','Nembo ya Mfumo'],['Change Logo','Badilisha Logo'],['No new logo uploaded','Hakuna logo mpya iliyopakiwa'],
+['Save Branding','Hifadhi Utambulisho'],['Change Password','Badilisha Nenosiri'],
+['Current Password','Nenosiri la Sasa'],['New Password','Nenosiri Jipya'],
+['Confirm Password','Thibitisha Nenosiri'],['Save Password','Hifadhi Nenosiri'],
+['Profile','Wasifu'],['Account','Akaunti'],['User','Mtumiaji'],
+['Admin','Msimamizi'],['Managing Director','Mkurugenzi Mkuu'],['Event Manager','Msimamizi wa Matukio'],
+['Event Scanner','Mkaguzi wa Matukio'],['Welcome to Dashboard','Karibu kwenye Dashboard'],
+['An overview of your activities, guests and all events in one place.','Muhtasari wa shughuli zako, wageni na matukio yote sehemu moja.'],
+['Manage Events','Simamia Events'],['View Reports','Angalia Ripoti'],['No events yet','Hakuna events bado'],
+['Information saved!','Taarifa zimehifadhiwa!'],['Settings saved!','Mipangilio imehifadhiwa!'],
+['Could not save','Imeshindikana kuhifadhi'],['Please try again.','Tafadhali jaribu tena.'],
+['You do not have permission to open this page','Huna ruhusa ya kufungua ukurasa huu'],
+['Swahili language selected','Lugha ya Kiswahili imechaguliwa'],['English language selected','Lugha ya Kiingereza imechaguliwa'],
+['Invite Them Easy','Alika kwa Urahisi'],['Invitation Management System','Mfumo wa Usimamizi wa Mialiko'],
+['Wedding','Harusi'],['Birthday','Siku ya Kuzaliwa'],['Sendoff','Send-off'],['Celebration','Sherehe'],
+['Folder','Folda'],['Folders','Mafolda'],['Create Folder','Tengeneza Folda'],['Folder Name','Jina la Folda'],
+['Select Event','Chagua Tukio'],['Event','Tukio'],['All','Wote'],['All','Zote'],['Pending','Inasubiri'],
+['Completed','Imekamilika'],['Successful','Imefanikiwa'],['Failed','Imeshindikana']
+];
+
+SYSTEM_TRANSLATION_PAIRS.push(
+ ['Guests','Wageni'],['Guests','Wageni'],['Recent arrivals','Walioingia Hivi Karibuni'],
+ ['Quick actions','Vitendo vya Haraka'],['Attendance (Live)','Waliohudhuria (Live)'],
+ ['Select event','Chagua Tukio'],['-- Select event --','-- Chagua Tukio --'],
+ ['Email address','Barua Pepe'],['Password','Nenosiri'],['Sign in','Ingia'],
+ ['Forgot password?','Umesahau neno siri?'],['Change language','Badili Lugha'],
+ ['Choose system language','Chagua lugha ya mfumo'],['All','Wote'],['Arrived','Waliofika'],
+ ['Not arrived','Hawajafika'],['Refresh data','Sasisha Data'],['Event statistics','Takwimu za tukio'],
+ ['Scan guests’ QR codes','Scan QR code za wageni'],['Get the latest information','Pata taarifa za hivi karibuni'],
+ ['Share scanner link','Shiriki Link ya Scanner'],['Send to another scanner/guard','Tuma kwa scanner/mlinzi mwingine'],
+ ['No scans yet','Hakuna scans bado'],['Select an event first','Chagua tukio kwanza'],
+ ['Search guest by name or card ID...','Tafuta mgeni kwa jina au ID ya kadi...'],
+ ['No guests matched your search','Hakuna wageni waliolingana na utafutaji'],
+ ['You have not been assigned to any event yet. Contact the administrator.','Hujapewa ruhusa ya event yoyote bado. Wasiliana na admin.'],
+ ['Enter your email and password!','Jaza email na neno la siri!'],['Invalid ticket','KADI SI HALALI'],
+ ['This QR code is not registered in the system','QR code hii haipo kwenye mfumo'],
+ ['This person is not in this event','MTU HUYU HAYUPO KATIKA EVENT HII'],
+ ['Group is complete','GROUP IMEKAMILIKA'],['Valid ticket','KADI HALALI'],
+ ['Remaining spaces:','Nafasi Zilizobaki:'],['People checking in NOW:','Watu wanaoingia SASA:'],
+ ['Next scan','Scan Ijayo'],['Confirmed!','Imethibitishwa!'],
+ ['No event','Hakuna Event'],['Complete','Kamili'],['Partial','Partial'],
+ ['Add to Home Screen','Ongeza kwenye Home Screen'],['Install app on your phone','Install App kwenye Simu'],
+ ['Tap here to add to Home Screen','Bonyeza hapa kuongeza kwenye Home Screen'],
+ ['Sign out','Toka (Logout)'],['Are you sure you want to sign out?','Unataka kutoka?']
+);
+
+const SCANNER_TRANSLATIONS={sw:Object.create(null),en:Object.create(null)};
+SYSTEM_TRANSLATION_PAIRS.forEach(([en,sw])=>{
+ if(typeof en!=='string'||typeof sw!=='string'||!en.trim()||!sw.trim())return;
+ SCANNER_TRANSLATIONS.sw[en]=sw;SCANNER_TRANSLATIONS.en[sw]=en;
 });
-scannerLanguageObserver.observe(document.documentElement,{childList:true,subtree:true});
-window.addEventListener('DOMContentLoaded', () => translateScannerDOM());
+const scannerOriginalText=new WeakMap();
+const scannerOriginalAttributes=new WeakMap();
+let scannerLanguageObserver=null;
+function scannerDictionary(lang){return SCANNER_TRANSLATIONS[lang==='en'?'en':'sw']||SCANNER_TRANSLATIONS.sw;}
+function translateScannerTextNode(node,lang){
+ if(!node||node.nodeType!==Node.TEXT_NODE)return;
+ const parent=node.parentElement;
+ if(!parent||parent.closest('script,style,textarea,input,[contenteditable="true"],.user-content,.preserve-user-text'))return;
+ const current=node.textContent;
+ let state=scannerOriginalText.get(node);
+ if(!state)state={source:current,rendered:current};
+ else if(current!==state.rendered)state.source=current;
+ const source=state.source,trimmed=source.trim(),translated=trimmed?scannerDictionary(lang)[trimmed]:null;
+ const output=translated?source.replace(trimmed,translated):source;
+ state.rendered=output;scannerOriginalText.set(node,state);
+ if(current!==output)node.textContent=output;
+}
+function translateScannerAttribute(el,attr,lang){
+ if(!el||!el.hasAttribute(attr))return;
+ if(attr==='value'&&!el.matches('input[type="button"],input[type="submit"],input[type="reset"]'))return;
+ let states=scannerOriginalAttributes.get(el);if(!states){states={};scannerOriginalAttributes.set(el,states);}
+ const current=el.getAttribute(attr);let state=states[attr];
+ if(!state)state={source:current,rendered:current};else if(current!==state.rendered)state.source=current;
+ const output=scannerDictionary(lang)[state.source]||state.source;
+ state.rendered=output;states[attr]=state;if(current!==output)el.setAttribute(attr,output);
+}
+function translateScannerElement(el,lang){
+ if(!el||el.nodeType!==Node.ELEMENT_NODE||el.matches('script,style,.user-content,.preserve-user-text,[contenteditable="true"]'))return;
+ if(!el.matches('input,textarea'))el.childNodes.forEach(n=>{
+  if(n.nodeType===Node.TEXT_NODE)translateScannerTextNode(n,lang);
+  else if(n.nodeType===Node.ELEMENT_NODE)translateScannerElement(n,lang);
+ });
+ ['placeholder','title','aria-label'].forEach(attr=>translateScannerAttribute(el,attr,lang));
+ if(el.matches('input[type="button"],input[type="submit"],input[type="reset"]'))translateScannerAttribute(el,'value',lang);
+}
+function observeScannerLanguage(){
+ if(scannerLanguageObserver)scannerLanguageObserver.disconnect();
+ scannerLanguageObserver=new MutationObserver(records=>{
+  const lang=localStorage.getItem('meshez_language')||'sw';
+  records.forEach(record=>{
+   if(record.type==='characterData')translateScannerTextNode(record.target,lang);
+   else if(record.type==='attributes')translateScannerAttribute(record.target,record.attributeName,lang);
+   else record.addedNodes.forEach(node=>{
+    if(node.nodeType===Node.TEXT_NODE)translateScannerTextNode(node,lang);
+    else if(node.nodeType===Node.ELEMENT_NODE)translateScannerElement(node,lang);
+   });
+  });
+ });
+ scannerLanguageObserver.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label','value']});
+}
+function setScannerLanguage(lang){
+ scannerLanguage=lang==='en'?'en':'sw';
+ try{localStorage.setItem('meshez_language',scannerLanguage);}catch(e){}
+ document.documentElement.lang=scannerLanguage;
+ if(scannerLanguageObserver)scannerLanguageObserver.disconnect();
+ translateScannerElement(document.body,scannerLanguage);
+ observeScannerLanguage();
+ document.querySelectorAll('#language-panel button').forEach(btn=>btn.classList.toggle('active',btn.id===(scannerLanguage==='en'?'lang-en':'lang-sw')));
+}
+function toggleLanguagePanel(){
+ const panel=document.getElementById('language-panel');if(!panel)return;
+ panel.hidden=!panel.hidden;
+ if(!panel.hidden)document.querySelectorAll('#language-panel button').forEach(btn=>btn.classList.toggle('active',btn.id===(scannerLanguage==='en'?'lang-en':'lang-sw')));
+}
 
 // ===== AUTH =====
 function toggleScannerPassword() {

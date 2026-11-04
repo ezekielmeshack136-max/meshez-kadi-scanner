@@ -1072,7 +1072,7 @@ button{transition:background .18s ease,transform .18s ease,box-shadow .18s ease}
   <div class="page" id="page-profile">
     <div class="profile-header">
       <div class="profile-avatar" id="pwa-avatar">M</div>
-      <div class="profile-name" id="pwa-name">Meshez</div>
+      <div class="profile-name" id="pwa-name">Snap Cards</div>
       <div class="profile-email" id="pwa-email">-</div>
     </div>
 
@@ -2018,5 +2018,30 @@ async function refreshAll() {
   toast('Imesasishwa!', 'success');
 }
 </script>
+
+// ===== SNAP CARDS AUTH / LEGACY BRAND CLEANUP =====
+(function removeLegacyScannerUI() {
+  const clean = () => {
+    const auth = document.getElementById('auth-screen');
+    if (auth) {
+      auth.querySelectorAll('button, a, [role="button"]').forEach(el => {
+        if (el.classList.contains('btn-login') || el.classList.contains('password-toggle') || el.classList.contains('scanner-forgot')) return;
+        const label = (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+        if (label === 'sign in' || label === 'ingia') el.remove();
+      });
+    }
+    document.querySelectorAll('body *').forEach(el => {
+      if (el.children.length) return;
+      const value = (el.textContent || '').replace(/\\s+/g, ' ').trim();
+      if (/Akaunti za Meshez Kadi hutengenezwa na Owner kupitia User Management\\.?/i.test(value)) el.remove();
+    });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', clean, { once: true });
+  else clean();
+  const observer = new MutationObserver(clean);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  window.setTimeout(() => observer.disconnect(), 10000);
+})();
+
 </body>
 </html>

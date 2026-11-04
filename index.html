@@ -786,6 +786,13 @@ body {
 .language-panel button.active#lang-en{background:linear-gradient(120deg,#164F9B,#24243A);color:#fff;border-color:transparent}
 @media(max-width:380px){#auth-screen .auth-card{padding:30px 22px!important}.quick-actions-grid button{font-size:12px;padding:12px 8px}}
 
+
+/* Profile identity layout: initials, registered full name, one email line */
+#page-profile .profile-header{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+#page-profile .profile-avatar{order:0;margin:0 auto 14px!important;flex:0 0 auto}
+#page-profile .profile-name{order:1;margin:0 auto 4px!important;max-width:100%;overflow-wrap:anywhere}
+#page-profile .profile-email{order:2;margin:0 auto!important;max-width:100%;overflow-wrap:anywhere;color:rgba(255,255,255,.82)!important;font-size:13px!important}
+
 </style>
 <style id="meshez-app-theme">
 :root{
@@ -1407,6 +1414,15 @@ SYSTEM_TRANSLATION_PAIRS.push(
  ['Sign out','Toka (Logout)'],['Are you sure you want to sign out?','Unataka kutoka?']
 );
 
+SYSTEM_TRANSLATION_PAIRS.push(
+ ['Attendance rate','Ufike'],['Attendance progress','Maendeleo ya Ufike'],
+ ['attended','wamefika'],['invited','walioalikwa'],
+ ['Enter ID Manually','Andika ID Kwa Mkono'],
+ ['Not arrived','Hajakuja'],['Arrived','Amekuja'],
+ ['Guest has not arrived','Hajakuja'],['Guest has arrived','Amekuja'],
+ ['Hajafika','Not arrived']
+);
+
 let scannerLanguage=(localStorage.getItem('meshez_language')||'sw')==='en'?'en':'sw';
 const SCANNER_TRANSLATIONS={sw:Object.create(null),en:Object.create(null)};
 SYSTEM_TRANSLATION_PAIRS.forEach(([en,sw])=>{
@@ -1425,7 +1441,15 @@ function translateScannerTextNode(node,lang){
  let state=scannerOriginalText.get(node);
  if(!state)state={source:current,rendered:current};
  else if(current!==state.rendered)state.source=current;
- const source=state.source,trimmed=source.trim(),translated=trimmed?scannerDictionary(lang)[trimmed]:null;
+ const source=state.source,trimmed=source.trim(),dictionary=scannerDictionary(lang);
+ let translated=trimmed?dictionary[trimmed]:null;
+ if(!translated && trimmed){
+  let expanded=trimmed;
+  Object.keys(dictionary).filter(key=>key.length>2).sort((a,b)=>b.length-a.length).forEach(phrase=>{
+   if(expanded.includes(phrase)) expanded=expanded.split(phrase).join(dictionary[phrase]);
+  });
+  if(expanded!==trimmed) translated=expanded;
+ }
  const output=translated?source.replace(trimmed,translated):source;
  state.rendered=output;scannerOriginalText.set(node,state);
  if(current!==output)node.textContent=output;
@@ -1522,15 +1546,25 @@ async function logout() {
 }
 
 // ===== SHOW APP =====
+function updateScannerProfileCard() {
+  const firstName = String(currentProfile?.first_name || '').trim();
+  const lastName = String(currentProfile?.last_name || '').trim();
+  const profileFullName = [firstName,lastName].filter(Boolean).join(' ').trim();
+  const metadataName = String(currentUser?.user_metadata?.full_name || '').trim();
+  const fullName = profileFullName || metadataName || 'User';
+  const email = String(currentProfile?.email || currentUser?.email || '').trim();
+  const avatar = document.getElementById('pwa-avatar');
+  const nameEl = document.getElementById('pwa-name');
+  const emailEl = document.getElementById('pwa-email');
+  if (avatar) avatar.textContent = (firstName || fullName).charAt(0).toLocaleUpperCase();
+  if (nameEl) nameEl.textContent = fullName;
+  if (emailEl) emailEl.textContent = email;
+}
 async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  const name = currentUser?.user_metadata?.full_name || currentUser?.email || 'User';
-  const initial = name[0].toUpperCase();
-  document.getElementById('pwa-avatar').textContent = initial;
-  document.getElementById('pwa-name').textContent = name.split(' ')[0];
-  document.getElementById('pwa-email').textContent = currentUser?.email || '';
   await loadMyProfile();
+  updateScannerProfileCard();
   await loadOrgOwnerId();
   await loadEventsDropdowns();
   await loadDashboard();

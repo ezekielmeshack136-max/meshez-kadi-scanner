@@ -1423,6 +1423,21 @@ SYSTEM_TRANSLATION_PAIRS.push(
  ['Hajafika','Not arrived']
 );
 
+
+SYSTEM_TRANSLATION_PAIRS.push(
+ ['Invited','Walioalikwa'],['Confirm','Thibitisha'],['Confirm Attendance','Thibitisha Ufike'],
+ ['Confirmed','Imethibitishwa'],['Entry confirmed','Umefanikiwa kuthibitisha kuingia'],
+ ['Invalid ticket','KADI SI HALALI'],['This QR code is not registered in the system','QR code hii haipo kwenye mfumo'],
+ ['This person is not in this event','MTU HUYU HAYUPO KATIKA EVENT HII'],
+ ['Group is complete','GROUP IMEKAMILIKA'],['All guests in this group have already checked in','Watu wote wa kundi hili tayari wameingia'],
+ ['Remaining spaces:','Nafasi Zilizobaki:'],['People checking in NOW:','Watu wanaoingia SASA:'],
+ ['Next scan','Scan Ijayo'],['Refresh complete!','Imesasishwa!'],
+ ['Enter a card ID!','Andika ID ya kadi!'],['App installed!','App imeinstallwa!'],
+ ['Use Chrome and tap "Add to Home Screen"','Tumia browser ya Chrome na bonyeza "Add to Home Screen"'],
+ ['Link copied! Now paste it into WhatsApp','Link imenakiliwa! Sasa bandika (paste) kwenye WhatsApp'],
+ ['You have confirmed','Umethibitisha'],['checked in!','wameingia!']
+);
+
 let scannerLanguage=(localStorage.getItem('meshez_language')||'sw')==='en'?'en':'sw';
 const SCANNER_TRANSLATIONS={sw:Object.create(null),en:Object.create(null)};
 SYSTEM_TRANSLATION_PAIRS.forEach(([en,sw])=>{
@@ -1967,7 +1982,16 @@ function playBeep(type) {
 // ===== TOAST =====
 function toast(msg, type='') {
   const el = document.getElementById('pwa-toast');
-  el.textContent = msg;
+  let displayMessage = String(msg ?? '');
+  try {
+    const dictionary = scannerDictionary(scannerLanguage);
+    if (dictionary[displayMessage]) displayMessage = dictionary[displayMessage];
+    else if (scannerLanguage === 'en') {
+      const confirmed = displayMessage.match(/^Umethibitisha:\\s*(\\d+)\\/(\\d+)\\s+wameingia!$/i);
+      if (confirmed) displayMessage = 'Confirmed: ' + confirmed[1] + '/' + confirmed[2] + ' checked in!';
+    }
+  } catch (e) {}
+  el.textContent = displayMessage;
   el.className = 'toast show ' + type;
   setTimeout(() => el.classList.remove('show'), 3000);
 }

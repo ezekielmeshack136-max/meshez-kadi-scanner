@@ -1407,6 +1407,7 @@ SYSTEM_TRANSLATION_PAIRS.push(
  ['Sign out','Toka (Logout)'],['Are you sure you want to sign out?','Unataka kutoka?']
 );
 
+let scannerLanguage=(localStorage.getItem('meshez_language')||'sw')==='en'?'en':'sw';
 const SCANNER_TRANSLATIONS={sw:Object.create(null),en:Object.create(null)};
 SYSTEM_TRANSLATION_PAIRS.forEach(([en,sw])=>{
  if(typeof en!=='string'||typeof sw!=='string'||!en.trim()||!sw.trim())return;

@@ -1168,7 +1168,10 @@ function toggleScannerPassword() {
   if (!input) return;
   const showing = input.type === 'text';
   input.type = showing ? 'password' : 'text';
-  if (eye) eye.setAttribute('data-lucide', showing ? 'eye' : 'eye-off');
+  const toggle = document.querySelector('.password-toggle');
+  if (toggle) {
+    toggle.innerHTML = '<i data-lucide="' + (showing ? 'eye' : 'eye-off') + '" id="scanner-password-eye"></i>';
+  }
   try { lucide.createIcons(); } catch (e) {}
 }
 

@@ -1435,7 +1435,11 @@ SYSTEM_TRANSLATION_PAIRS.push(
  ['Enter a card ID!','Andika ID ya kadi!'],['App installed!','App imeinstallwa!'],
  ['Use Chrome and tap "Add to Home Screen"','Tumia browser ya Chrome na bonyeza "Add to Home Screen"'],
  ['Link copied! Now paste it into WhatsApp','Link imenakiliwa! Sasa bandika (paste) kwenye WhatsApp'],
- ['You have confirmed','Umethibitisha'],['checked in!','wameingia!']
+ ['You have confirmed','Umethibitisha'],['checked in!','wameingia!'],
+ ['All guests have already checked in','walikwisha ingia'],
+ ['This card belongs to event','Kadi hii ni ya event'],
+ ['not the event you selected','si event uliyochagua sasa.'],
+ ['Entry confirmed!','Imethbitishwa!']
 );
 
 let scannerLanguage=(localStorage.getItem('meshez_language')||'sw')==='en'?'en':'sw';
@@ -1891,7 +1895,7 @@ async function confirmEntry(id, current, groupSize) {
   document.getElementById('scan-result-pwa').innerHTML = `
     <div class="scan-result success">
       <div class="result-icon">${animatedCheckmarkSVG()}</div>
-      <div class="result-title" style="color:var(--success)">Imethbitishwa!</div>
+      <div class="result-title" style="color:var(--success)">Imethibitishwa!</div>
       <div class="result-sub">${newCount}/${groupSize} wameingia • Wanaobaki: ${groupSize-newCount}</div>
     </div>
     ${scanNextBtn()}`;

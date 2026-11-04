@@ -1180,81 +1180,94 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const SCANNER_BRANDING_CACHE_KEY = 'snap_cards_scanner_branding_v1';
-let scannerBranding = { name: 'Snap Cards', logo: '' };
+// Read the exact logo saved by the main Snap Cards app.
+// Both GitHub Pages projects share this origin's localStorage.
+const SHARED_APP_BRANDING_KEY = 'meshez_system_branding_v2';
+let scannerBranding = { name: 'Snap Cards', logo: '', logoScale: 100 };
 
-// Futa cache za branding za matoleo ya zamani ili zisirudishe jina au logo isiyotakiwa.
-try {
-  localStorage.removeItem('meshez_system_branding_v2');
-  localStorage.removeItem('meshez_system_branding');
-} catch (e) {}
+function readSharedAppLogo() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SHARED_APP_BRANDING_KEY) || 'null');
+    if (!saved || typeof saved !== 'object') return;
+    scannerBranding.logo = (typeof saved.logoOffline === 'string' && saved.logoOffline)
+      ? saved.logoOffline
+      : (typeof saved.logo === 'string' ? saved.logo : '');
+    scannerBranding.logoScale = Math.max(50, Math.min(200, Number(saved.logoScale) || 100));
+  } catch (e) { console.warn('Snap Cards shared logo cache could not be read:', e); }
+}
 
 function applyScannerBranding() {
-  const name = 'Snap Cards';
   document.title = 'Snap Cards';
   const brandName = document.getElementById('scanner-brand-name');
-  if (brandName) brandName.textContent = name;
-  document.querySelectorAll('.splash-title,.topbar-title').forEach(el => el.textContent = name);
-  const logoTargets = [
+  if (brandName) brandName.textContent = 'Snap Cards';
+  document.querySelectorAll('.splash-title,.topbar-title').forEach(el => el.textContent = 'Snap Cards');
+  [
     document.getElementById('scanner-brand-logo'),
     document.querySelector('.splash-logo'),
     document.querySelector('.topbar-icon')
-  ];
-  logoTargets.forEach(el => {
+  ].forEach(el => {
     if (!el) return;
     el.replaceChildren();
     el.style.backgroundImage = 'none';
-    if (scannerBranding.logo) {
-      const img = document.createElement('img');
-      img.src = scannerBranding.logo;
-      img.alt = 'Snap Cards logo';
-      img.onerror = () => img.remove();
-      el.appendChild(img);
-    } else {
-      // Hakuna picha ya zamani ya akiba: tumia herufi za Snap Cards pekee.
-      el.textContent = 'SC';
-      el.style.color = '#C49A52';
-      el.style.fontWeight = '800';
-      el.style.fontSize = '19px';
-      el.style.display = 'flex';
-      el.style.alignItems = 'center';
-      el.style.justifyContent = 'center';
-    }
+    el.style.backgroundColor = '#fff';
+    if (!scannerBranding.logo) return;
+    const img = document.createElement('img');
+    img.src = scannerBranding.logo;
+    img.alt = 'Snap Cards logo';
+    img.draggable = false;
+    img.style.width = scannerBranding.logoScale + '%';
+    img.style.height = scannerBranding.logoScale + '%';
+    img.style.maxWidth = 'none';
+    img.style.maxHeight = 'none';
+    img.style.objectFit = 'contain';
+    img.style.display = 'block';
+    img.onerror = () => img.remove();
+    el.appendChild(img);
   });
 }
 
-async function loadScannerBranding() {
-  // Cache hii mpya hujazwa tu na logo iliyosomwa kutoka branding ya sasa ya Supabase.
+async function cacheSharedAppLogoForOffline(url) {
+  if (!url || String(url).startsWith('data:')) return;
   try {
-    const cached = JSON.parse(localStorage.getItem(SCANNER_BRANDING_CACHE_KEY) || 'null');
-    if (cached && typeof cached.logo === 'string') {
-      scannerBranding.logo = cached.logo;
-      applyScannerBranding();
-    }
-  } catch (e) {}
+    const response = await fetch(url, { cache: 'force-cache' });
+    if (!response.ok) throw new Error('Logo HTTP ' + response.status);
+    const blob = await response.blob();
+    if (!blob.type.startsWith('image/') || blob.size > 650000) return;
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+    if (!dataUrl) return;
+    const saved = JSON.parse(localStorage.getItem(SHARED_APP_BRANDING_KEY) || '{}');
+    saved.logo = url;
+    saved.logoOffline = dataUrl;
+    saved.logoScale = scannerBranding.logoScale;
+    localStorage.setItem(SHARED_APP_BRANDING_KEY, JSON.stringify(saved));
+    scannerBranding.logo = dataUrl;
+    applyScannerBranding();
+  } catch (e) { console.info('Snap Cards logo offline copy not refreshed:', e); }
+}
 
+async function loadScannerBranding() {
+  readSharedAppLogo();
+  applyScannerBranding();
   try {
     const { data, error } = await db.rpc('get_public_system_branding');
     if (error) throw error;
     const row = Array.isArray(data) ? data[0] : data;
-    if (row && typeof row.logo_url === 'string') {
+    if (row && typeof row.logo_url === 'string' && row.logo_url) {
       scannerBranding.logo = row.logo_url;
+      scannerBranding.logoScale = Math.max(50, Math.min(200, Number(row.logo_scale) || scannerBranding.logoScale || 100));
       applyScannerBranding();
-      try {
-        localStorage.setItem(SCANNER_BRANDING_CACHE_KEY, JSON.stringify({
-          name: 'Snap Cards',
-          logo: scannerBranding.logo,
-          updatedAt: Date.now()
-        }));
-      } catch (e) {}
+      await cacheSharedAppLogoForOffline(row.logo_url);
     }
   } catch (e) {
-    // Offline: Snap Cards hubaki; kama hakuna cache mpya, hakuna logo ya zamani itakayoonyeshwa.
-    console.info('Snap Cards branding: offline mode.');
+    console.info('Snap Cards branding: offline mode; using Profile Settings logo cache.');
   }
 }
 
-applyScannerBranding();
 loadScannerBranding();
 
 let currentUser = null;
